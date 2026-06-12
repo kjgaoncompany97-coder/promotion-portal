@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>프로모션 운영·검증 시스템</title>
+  <?!= include('style'); ?>
+</head>
+<body data-page="teacher">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">전북 AI디지털배움터</p>
+      <h1>강사용 프로모션 포털</h1>
+    </div>
+    <a class="admin-link" href="?page=admin">관리자</a>
+  </header>
+
+  <main class="layout">
+    <section class="panel intro-panel">
+      <div>
+        <h2>진행 중인 프로모션</h2>
+        <p>참여할 프로모션 카드를 선택하고 활동 내용을 등록하세요.</p>
+      </div>
+      <button class="ghost-button" id="reloadPromotions" type="button">새로고침</button>
+    </section>
+
+    <section class="promotion-grid" id="promotionGrid" aria-live="polite"></section>
+
+    <section class="two-column">
+      <form class="panel form-panel" id="entryForm">
+        <div class="section-heading">
+          <h2>참여 등록</h2>
+          <span id="selectedPromotionLabel">프로모션을 선택해 주세요</span>
+        </div>
+        <input type="hidden" name="promotionId" id="promotionId">
+        <label>강사명<input name="teacherName" autocomplete="name" required></label>
+        <label>팀<input name="team" autocomplete="organization" required></label>
+        <label>제출내용<textarea name="submission" rows="5" placeholder="홍보 링크, 활동 내용, 확인 가능한 설명을 입력하세요." required></textarea></label>
+        <button class="primary-button" type="submit">참여 등록</button>
+        <p class="message" id="entryMessage"></p>
+      </form>
+
+      <section class="panel lookup-panel">
+        <div class="section-heading">
+          <h2>내 제출·결과 조회</h2>
+          <span>반려 사유와 예상 지급액 확인</span>
+        </div>
+        <form class="lookup-form" id="lookupForm">
+          <label>강사명<input name="teacherName" required></label>
+          <label>팀<input name="team"></label>
+          <button class="secondary-button" type="submit">조회</button>
+        </form>
+        <div class="result-summary" id="mySummary"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>접수일시</th><th>프로모션</th><th>상태</th><th>반려 사유</th><th>예상 지급액</th></tr>
+            </thead>
+            <tbody id="mySubmissionRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <?!= include('script'); ?>
+</body>
+</html>
