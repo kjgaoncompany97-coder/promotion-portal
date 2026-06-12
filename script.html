@@ -1,0 +1,291 @@
+<script>
+  const state = {
+    promotions: [],
+    selectedPromotion: null,
+    adminToken: sessionStorage.getItem('adminToken') || ''
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const page = document.body.dataset.page;
+    if (page === 'teacher') initTeacherPage();
+    if (page === 'admin') initAdminPage();
+  });
+
+  function runServer(method, ...args) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(error => reject(error && error.message ? error.message : error))
+        [method](...args);
+    });
+  }
+
+  async function initTeacherPage() {
+    bindTeacherForms();
+    await loadPromotions();
+  }
+
+  function bindTeacherForms() {
+    document.getElementById('reloadPromotions').addEventListener('click', loadPromotions);
+    document.getElementById('entryForm').addEventListener('submit', submitEntry);
+    document.getElementById('lookupForm').addEventListener('submit', lookupMine);
+  }
+
+  async function loadPromotions() {
+    const grid = document.getElementById('promotionGrid');
+    grid.innerHTML = '<div class="panel">프로모션을 불러오는 중입니다.</div>';
+    try {
+      const data = await runServer('getInitialData');
+      state.promotions = data.promotions || [];
+      renderPromotions();
+    } catch (error) {
+      grid.innerHTML = '<div class="panel">' + escapeHtml(error) + '</div>';
+    }
+  }
+
+  function renderPromotions() {
+    const grid = document.getElementById('promotionGrid');
+    if (!state.promotions.length) {
+      grid.innerHTML = '<div class="panel">현재 진행 중인 프로모션이 없습니다.</div>';
+      return;
+    }
+
+    grid.innerHTML = state.promotions.map(item => `
+      <article class="promotion-card ${state.selectedPromotion && state.selectedPromotion.id === item.id ? 'selected' : ''}" data-id="${escapeAttr(item.id)}" tabindex="0">
+        <img src="${escapeAttr(item.imageUrl)}" alt="${escapeAttr(item.name)}">
+        <div class="card-body">
+          <span class="badge">${escapeHtml(item.status)}</span>
+          <h2>${escapeHtml(item.name)}</h2>
+          <p>${escapeHtml(item.description)}</p>
+          <p><strong>${formatMoney(item.unitPrice)}</strong> / 최대 ${escapeHtml(item.maxCount)}회</p>
+          <p>${escapeHtml(item.startDate)} ~ ${escapeHtml(item.endDate)}</p>
+        </div>
+      </article>
+    `).join('');
+
+    grid.querySelectorAll('.promotion-card').forEach(card => {
+      card.addEventListener('click', () => selectPromotion(card.dataset.id));
+      card.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') selectPromotion(card.dataset.id);
+      });
+    });
+  }
+
+  function selectPromotion(id) {
+    state.selectedPromotion = state.promotions.find(item => item.id === id);
+    document.getElementById('promotionId').value = id;
+    document.getElementById('selectedPromotionLabel').textContent = state.selectedPromotion ? state.selectedPromotion.name : '프로모션을 선택해 주세요';
+    renderPromotions();
+    document.getElementById('entryForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function submitEntry(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    const message = document.getElementById('entryMessage');
+    if (!form.promotionId.value) {
+      message.textContent = '참여할 프로모션을 먼저 선택해 주세요.';
+      return;
+    }
+
+    button.disabled = true;
+    message.textContent = '등록 중입니다.';
+    try {
+      const result = await runServer('registerParticipation', formToObject(form));
+      message.textContent = `${result.message} 접수번호: ${result.id}`;
+      form.submission.value = '';
+    } catch (error) {
+      message.textContent = error;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function lookupMine(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const rows = document.getElementById('mySubmissionRows');
+    const summary = document.getElementById('mySummary');
+    rows.innerHTML = '<tr><td colspan="5">조회 중입니다.</td></tr>';
+    summary.textContent = '';
+    try {
+      const result = await runServer('getMyResults', formToObject(form));
+      summary.innerHTML = `<span>인정 ${result.approvedCount}건</span><span>예상 지급액 ${formatMoney(result.totalAmount)}</span>`;
+      rows.innerHTML = result.submissions.length ? result.submissions.map(item => `
+        <tr>
+          <td>${escapeHtml(item.receivedAt)}</td>
+          <td>${escapeHtml(item.promotionName)}</td>
+          <td class="status-${escapeAttr(item.status)}">${escapeHtml(item.status)}</td>
+          <td>${escapeHtml(item.rejectReason || '-')}</td>
+          <td>${formatMoney(item.expectedAmount)}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="5">제출 내역이 없습니다.</td></tr>';
+    } catch (error) {
+      rows.innerHTML = '<tr><td colspan="5">' + escapeHtml(error) + '</td></tr>';
+    }
+  }
+
+  function initAdminPage() {
+    document.getElementById('adminLoginForm').addEventListener('submit', adminLogin);
+    document.getElementById('statusFilter').addEventListener('change', refreshAdmin);
+    document.getElementById('downloadCsv').addEventListener('click', downloadCsv);
+    if (state.adminToken) showAdminApp();
+  }
+
+  async function adminLogin(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const message = document.getElementById('loginMessage');
+    message.textContent = '로그인 중입니다.';
+    try {
+      const result = await runServer('adminLogin', form.password.value);
+      state.adminToken = result.token;
+      sessionStorage.setItem('adminToken', result.token);
+      showAdminApp();
+    } catch (error) {
+      message.textContent = error;
+    }
+  }
+
+  async function showAdminApp() {
+    document.getElementById('loginPanel').classList.add('hidden');
+    document.getElementById('adminApp').classList.remove('hidden');
+    await refreshAdmin();
+  }
+
+  async function refreshAdmin() {
+    try {
+      const data = await runServer('getAdminDashboard', state.adminToken);
+      renderStats(data.counts);
+      renderReviewList(filterSubmissions(data.submissions));
+      renderResults(data.results);
+    } catch (error) {
+      sessionStorage.removeItem('adminToken');
+      document.getElementById('loginPanel').classList.remove('hidden');
+      document.getElementById('adminApp').classList.add('hidden');
+      document.getElementById('loginMessage').textContent = error;
+    }
+  }
+
+  function filterSubmissions(submissions) {
+    const status = document.getElementById('statusFilter').value;
+    return status ? submissions.filter(item => item.status === status) : submissions;
+  }
+
+  function renderStats(counts) {
+    const labels = [
+      ['전체 제출', counts.total],
+      ['검수 대기', counts.pending],
+      ['인정', counts.approved],
+      ['반려', counts.rejected],
+      ['중복 의심', counts.duplicate]
+    ];
+    document.getElementById('statsGrid').innerHTML = labels.map(([label, value]) => `
+      <div class="stat-card"><span>${label}</span><strong>${value}</strong></div>
+    `).join('');
+  }
+
+  function renderReviewList(submissions) {
+    const list = document.getElementById('reviewList');
+    if (!submissions.length) {
+      list.innerHTML = '<div class="review-item">검수할 제출 내역이 없습니다.</div>';
+      return;
+    }
+
+    list.innerHTML = submissions.map(item => `
+      <article class="review-item" data-id="${escapeAttr(item.id)}">
+        <div class="review-head">
+          <div>
+            <h3>${escapeHtml(item.promotionName)}</h3>
+            <div class="review-meta">
+              <span>${escapeHtml(item.teacherName)} / ${escapeHtml(item.team)}</span>
+              <span>${escapeHtml(item.receivedAt)}</span>
+              <span class="status-${escapeAttr(item.status)}">${escapeHtml(item.status)}</span>
+              <span>${formatMoney(item.expectedAmount)}</span>
+            </div>
+          </div>
+        </div>
+        <p>${escapeHtml(item.submission)}</p>
+        ${item.rejectReason ? `<p><strong>반려 사유:</strong> ${escapeHtml(item.rejectReason)}</p>` : ''}
+        <div class="review-actions">
+          <input placeholder="반려 사유 입력" aria-label="반려 사유">
+          <button class="primary-button" type="button" data-action="approve">인정</button>
+          <button class="secondary-button" type="button" data-action="reject">반려</button>
+        </div>
+      </article>
+    `).join('');
+
+    list.querySelectorAll('button[data-action]').forEach(button => {
+      button.addEventListener('click', () => submitReview(button));
+    });
+  }
+
+  async function submitReview(button) {
+    const item = button.closest('.review-item');
+    const reason = item.querySelector('input').value.trim();
+    const status = button.dataset.action === 'approve' ? '인정' : '반려';
+    button.disabled = true;
+    try {
+      await runServer('reviewSubmission', state.adminToken, { id: item.dataset.id, status, reason, adminName: '관리자' });
+      await refreshAdmin();
+    } catch (error) {
+      alert(error);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function renderResults(results) {
+    const rows = document.getElementById('resultRows');
+    rows.innerHTML = results.length ? results.map(item => `
+      <tr>
+        <td>${escapeHtml(item.teacherName)}</td>
+        <td>${escapeHtml(item.promotionName)}</td>
+        <td>${escapeHtml(item.approvedCount)}</td>
+        <td>${formatMoney(item.expectedAmount)}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="4">결과가 없습니다.</td></tr>';
+  }
+
+  async function downloadCsv() {
+    try {
+      const csv = await runServer('getResultsCsv', state.adminToken);
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'promotion-results.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(error);
+    }
+  }
+
+  function formToObject(form) {
+    return Array.from(new FormData(form).entries()).reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+  }
+
+  function formatMoney(value) {
+    return Number(value || 0).toLocaleString('ko-KR') + '원';
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, '&#96;');
+  }
+</script>
