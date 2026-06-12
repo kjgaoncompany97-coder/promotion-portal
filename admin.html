@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관리자 | 프로모션 운영·검증 시스템</title>
+  <?!= include('style'); ?>
+</head>
+<body data-page="admin">
+  <header class="topbar admin-topbar">
+    <div>
+      <p class="eyebrow">관리자 사이트</p>
+      <h1>프로모션 검수·결과 관리</h1>
+    </div>
+    <a class="admin-link" href="?">강사용 화면</a>
+  </header>
+
+  <main class="layout">
+    <section class="panel login-panel" id="loginPanel">
+      <div class="section-heading">
+        <h2>관리자 로그인</h2>
+        <span>기본 비밀번호는 스크립트 속성 ADMIN_PASSWORD로 변경할 수 있습니다.</span>
+      </div>
+      <form id="adminLoginForm" class="login-form">
+        <label>비밀번호<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary-button" type="submit">로그인</button>
+      </form>
+      <p class="message" id="loginMessage"></p>
+    </section>
+
+    <section id="adminApp" class="admin-app hidden">
+      <section class="stats-grid" id="statsGrid"></section>
+
+      <section class="panel">
+        <div class="section-heading with-actions">
+          <div>
+            <h2>검수 화면</h2>
+            <span>확인대기와 중복의심 제출을 우선 검수합니다.</span>
+          </div>
+          <select id="statusFilter" aria-label="상태 필터">
+            <option value="">전체</option>
+            <option value="확인대기">확인대기</option>
+            <option value="중복의심">중복의심</option>
+            <option value="인정">인정</option>
+            <option value="반려">반려</option>
+          </select>
+        </div>
+        <div class="review-list" id="reviewList"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading with-actions">
+          <div>
+            <h2>결과 조회</h2>
+            <span>강사별·프로모션별 인정 건수와 예상 지급액</span>
+          </div>
+          <button class="secondary-button" id="downloadCsv" type="button">CSV 다운로드</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>강사명</th><th>프로모션</th><th>인정건수</th><th>예상 지급액</th></tr>
+            </thead>
+            <tbody id="resultRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <?!= include('script'); ?>
+</body>
+</html>
