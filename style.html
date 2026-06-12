@@ -1,0 +1,278 @@
+<style>
+  :root {
+    --ink: #17202a;
+    --muted: #667085;
+    --line: #d7dde6;
+    --panel: #ffffff;
+    --soft: #f4f7fb;
+    --primary: #176b87;
+    --primary-dark: #0f4f63;
+    --accent: #e8751a;
+    --success: #177245;
+    --danger: #b42318;
+    --warning: #9a6700;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: Arial, 'Noto Sans KR', sans-serif;
+    color: var(--ink);
+    background: var(--soft);
+  }
+
+  .topbar {
+    min-height: 180px;
+    padding: 36px max(24px, calc((100vw - 1180px) / 2)) 32px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    color: #fff;
+    background: linear-gradient(135deg, #176b87 0%, #1f8a70 60%, #e8751a 100%);
+  }
+
+  .admin-topbar { background: linear-gradient(135deg, #263a4f 0%, #176b87 55%, #7a4f16 100%); }
+
+  .eyebrow {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 700;
+    opacity: .86;
+  }
+
+  h1, h2, p { margin-top: 0; }
+  h1 { margin-bottom: 0; font-size: 34px; line-height: 1.2; }
+  h2 { margin-bottom: 8px; font-size: 22px; }
+
+  .admin-link,
+  button,
+  select,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  .admin-link {
+    color: #fff;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 6px;
+    padding: 10px 14px;
+    white-space: nowrap;
+  }
+
+  .layout {
+    width: min(1180px, calc(100% - 32px));
+    margin: -28px auto 56px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 22px;
+    box-shadow: 0 12px 30px rgba(23, 32, 42, .08);
+  }
+
+  .intro-panel,
+  .section-heading.with-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .intro-panel p,
+  .section-heading span,
+  .message { color: var(--muted); }
+
+  .promotion-grid {
+    display: grid;
+    grid-template-columns: repeat( auto-fit, minmax(230px, 1fr) );
+    gap: 16px;
+    margin: 18px 0;
+  }
+
+  .promotion-card {
+    overflow: hidden;
+    min-height: 330px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+
+  .promotion-card:hover,
+  .promotion-card.selected {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+    box-shadow: 0 16px 32px rgba(23, 107, 135, .18);
+  }
+
+  .promotion-card img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: #dfe7ef;
+  }
+
+  .promotion-card .card-body {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .badge {
+    width: fit-content;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: #e7f5ef;
+    color: var(--success);
+  }
+
+  .two-column {
+    display: grid;
+    grid-template-columns: minmax(280px, 420px) 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+
+  label {
+    display: grid;
+    gap: 7px;
+    margin-bottom: 14px;
+    font-weight: 700;
+  }
+
+  input,
+  textarea,
+  select {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 11px 12px;
+    color: var(--ink);
+    background: #fff;
+  }
+
+  textarea { resize: vertical; }
+
+  button {
+    border: 0;
+    border-radius: 6px;
+    padding: 11px 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  button:disabled { cursor: wait; opacity: .65; }
+
+  .primary-button { background: var(--primary); color: #fff; }
+  .primary-button:hover { background: var(--primary-dark); }
+  .secondary-button { background: var(--accent); color: #fff; }
+  .ghost-button { background: #edf4f7; color: var(--primary-dark); }
+
+  .lookup-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .lookup-form label { margin-bottom: 0; }
+
+  .table-wrap { overflow-x: auto; margin-top: 14px; }
+  table { width: 100%; border-collapse: collapse; min-width: 680px; }
+  th, td { padding: 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-size: 13px; background: #f8fafc; }
+
+  .result-summary {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    font-weight: 700;
+  }
+
+  .hidden { display: none !important; }
+
+  .login-panel { max-width: 520px; margin: 0 auto; }
+  .login-form { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+  .login-form label { margin: 0; }
+
+  .admin-app { display: grid; gap: 18px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(130px, 1fr));
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px;
+  }
+
+  .stat-card strong { display: block; margin-top: 8px; font-size: 28px; }
+
+  .review-list { display: grid; gap: 12px; }
+
+  .review-item {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    background: #fbfcfe;
+  }
+
+  .review-head,
+  .review-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .review-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .review-actions {
+    margin-top: 14px;
+    align-items: stretch;
+  }
+
+  .review-actions input { flex: 1; }
+
+  .status-인정 { color: var(--success); font-weight: 700; }
+  .status-반려 { color: var(--danger); font-weight: 700; }
+  .status-중복의심 { color: var(--warning); font-weight: 700; }
+  .status-확인대기, .status-접수 { color: var(--primary); font-weight: 700; }
+
+  @media (max-width: 780px) {
+    .topbar,
+    .intro-panel,
+    .section-heading.with-actions,
+    .review-head,
+    .review-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    h1 { font-size: 28px; }
+    .two-column, .lookup-form, .login-form, .stats-grid { grid-template-columns: 1fr; }
+    .layout { width: min(100% - 24px, 1180px); }
+  }
+</style>
