@@ -53,12 +53,20 @@
     grid.innerHTML = state.promotions.map(item => `
       <article class="promotion-card ${state.selectedPromotion && state.selectedPromotion.id === item.id ? 'selected' : ''}" data-id="${escapeAttr(item.id)}" tabindex="0">
         <img src="${escapeAttr(item.imageUrl)}" alt="${escapeAttr(item.name)}">
-        <div class="card-body">
-          <span class="badge">${escapeHtml(item.status)}</span>
-          <h2>${escapeHtml(item.name)}</h2>
-          <p>${escapeHtml(item.description)}</p>
-          <p><strong>${formatMoney(item.unitPrice)}</strong> / 최대 ${escapeHtml(item.maxCount)}회</p>
-          <p>${escapeHtml(item.startDate)} ~ ${escapeHtml(item.endDate)}</p>
+        <div class="card-shell">
+          <div class="card-kicker">
+            <span class="badge">${escapeHtml(item.status)}</span>
+            <span>${escapeHtml(item.endDate)} 마감</span>
+          </div>
+          <div class="card-body">
+            <h2>${escapeHtml(item.name)}</h2>
+            <p class="card-copy">${escapeHtml(item.description)}</p>
+            <div class="card-foot">
+              <span><strong class="card-price">${formatMoney(item.unitPrice)}</strong></span>
+              <span>최대 ${escapeHtml(item.maxCount)}회</span>
+            </div>
+            <span class="card-cta">참여 등록</span>
+          </div>
         </div>
       </article>
     `).join('');
@@ -175,14 +183,14 @@
 
   function renderStats(counts) {
     const labels = [
-      ['전체 제출', counts.total],
-      ['검수 대기', counts.pending],
-      ['인정', counts.approved],
-      ['반려', counts.rejected],
-      ['중복 의심', counts.duplicate]
+      ['전체 제출', counts.total, 'kpi-total', '누적 등록'],
+      ['검수 대기', counts.pending, 'kpi-pending', '처리 필요'],
+      ['인정', counts.approved, 'kpi-approved', '지급 대상'],
+      ['반려', counts.rejected, 'kpi-rejected', '사유 확인'],
+      ['중복 의심', counts.duplicate, 'kpi-duplicate', '추가 검토']
     ];
-    document.getElementById('statsGrid').innerHTML = labels.map(([label, value]) => `
-      <div class="stat-card"><span>${label}</span><strong>${value}</strong></div>
+    document.getElementById('statsGrid').innerHTML = labels.map(([label, value, tone, helper]) => `
+      <div class="stat-card ${tone}"><span>${label}</span><strong>${value}</strong><small>${helper}</small></div>
     `).join('');
   }
 
